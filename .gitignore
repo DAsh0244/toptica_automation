@@ -179,4 +179,4 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.gitignore.io/api/matlab,python,windows,notepadpp,visualstudiocode
-motor_sweep_data/
+motor_sweep_data\*
