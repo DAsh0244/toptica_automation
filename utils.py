@@ -2,9 +2,9 @@ import logging as _logging
 
 import time as _time
 
-_formatter = _logging.Formatter('%(asctime)s - %(message)s')
-# _logger = _logging.getLogger(__file__)
-logger = _logging.getLogger('A')
+_formatter = _logging.Formatter('%(asctime)s -  %(name)s - %(message)s')
+logger = _logging.getLogger(__file__)
+# logger = _logging.getLogger('A')
 # logger.setLevel(logging.DEBUG)  # defaults to logging.WARNING
 _ch = _logging.StreamHandler()
 _ch.setLevel(_logging.DEBUG)

@@ -4,6 +4,18 @@ from time import sleep
 from dl_motor import DLMotor
 from toptica.lasersdk.dlcpro.v2_0_3 import DLCpro, NetworkConnection, DeviceNotFoundError, DecopError, UserLevel
 from atexit import ( register as _register, unregister as _unregister )
+import logging as _logging
+
+_formatter = _logging.Formatter('%(asctime)s -  %(name)s - %(message)s')
+logger = _logging.getLogger(__file__)
+# logger = _logging.getLogger('A')
+# logger.setLevel(logging.DEBUG)  # defaults to logging.WARNING
+_ch = _logging.StreamHandler()
+_ch.setLevel(_logging.DEBUG)
+_ch.setFormatter(_formatter)
+logger.addHandler(_ch)
+logger.setLevel(_logging.DEBUG)
+
 
 class fakeMotor:
     def close(*args):
@@ -28,8 +40,9 @@ class SHGpro:
         _register(self.close)
 
     def close(self):
-        self.dlc.__exit__()
         self.motor.close()
+        self.dlc.__exit__()
+        _unregister(self.close)
     
     def set_dl_piezo(self,voltage):
         self.dlc.laser1.dl.pc.voltage_set.set(voltage)
@@ -60,12 +73,12 @@ class SHGpro:
     def set_shg_temp(self,temp,block=False):
         self.dlc.laser1.nlo.shg.tc.temp_set.set(temp)
         if block:
-            print('temp blocking')
+            logger.debug('temp blocking')
             status = self.shg_temp_settled()
             while not status:
                 sleep(self.sleep_time )
                 status = self.shg_temp_settled()
-            print('settled')
+            logger.debug('settled')
 
     def shg_temp_settled(self):
         return self.dlc.laser1.nlo.shg.tc.ready.get()
@@ -90,8 +103,7 @@ class SHGpro:
 
     def set_shg_temp_for_frequency(self,frequency,block=False,master:bool=True,mode='quadratic'):
         wavelength = (299792458/(frequency*1e12))*1e9
-        print('calculated wavelength',wavelength)
-        print('freq',block)
+        logger.debug('calculated wavelength %f', wavelength)
         self.set_shg_temp_for_wavelength(wavelength,block=block,master=master,mode=mode)
 
     def optimize_amplifier_power(self):
@@ -119,10 +131,10 @@ class SHGpro:
         
     #     return state
 
-    def __del__(self):
-        try:
-            self.close()
-        except Exception as e:
-            print(e)
-        _unregister(self.close)
+    # def __del__(self):
+    #     try:
+    #         self.close()
+    #     except Exception as e:
+    #         print(e)
+    #     _unregister(self.close)
 

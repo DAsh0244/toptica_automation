@@ -8,6 +8,22 @@ import itertools
 import operator
 from enum import Enum
 from collections import namedtuple 
+
+import logging as _logging
+
+
+_formatter = _logging.Formatter('%(asctime)s -  %(name)s - %(message)s')
+logger = _logging.getLogger(__file__)
+# logger = _logging.getLogger('A')
+# logger.setLevel(logging.DEBUG)  # defaults to logging.WARNING
+_ch = _logging.StreamHandler()
+_ch.setLevel(_logging.DEBUG)
+_ch.setFormatter(_formatter)
+logger.addHandler(_ch)
+logger.setLevel(_logging.DEBUG)
+
+
+
 Point = namedtuple('Point','direction position wavelength frequency')
 _Reply = namedtuple('Reply','reply_address module_addr status command_num value checksum')
 
@@ -87,13 +103,14 @@ class DLMotor:
 
     def close(self):
         self._port.close()
-
-    def __del__(self):
-        try:
-            self.close()
-        except Exception as e:
-            print(e)
         _unregister(self.close)
+
+    # def __del__(self):
+    #     try:
+    #         self.close()
+    #     except Exception as e:
+    #         print(e)
+    #     _unregister(self.close)
 
     def _load_hysteresis_curve(self,curve_data_file:str,header:bool=True):
         """
@@ -257,7 +274,7 @@ class DLMotor:
         # find closest points to wavelength - w1 < w2
         p1,p2 = nsmallest(2, self._hysteresis_curve[self._direction], key=lambda x: abs(x.wavelength-(wavelength+self.wavelength_offset)))
         pos = self._interpolate(p1.wavelength,p1.position,p2.wavelength,p2.position,(wavelength+self.wavelength_offset))
-        print(p1,p2,pos,self.direction,wavelength)
+        logger.debug('wavelength: %f, target_pos: %d, direction:%s, p1: %s, p2: %s',wavelength,pos,self.direction,repr(p1),repr(p2))
         if pos > self.position and self.direction == 'down':
             self.cycle_position('up')
             self.cycle_position('down')
@@ -276,7 +293,7 @@ class DLMotor:
         # find closest points to wavelength - w1 < w2
         p1,p2 = nsmallest(2, self._hysteresis_curve[self._direction], key=lambda x: abs(x.frequency-(frequency+self.frequency_offset)))
         pos = self._interpolate(p1.frequency,p1.position,p2.frequency,p2.position,(frequency+self.frequency_offset))
-        print(p1,p2,pos,self.direction,frequency)
+        logger.debug('frequency: %f, target_pos: %d, direction:%s, p1: %s, p2: %s',frequency,pos,self.direction,repr(p1),repr(p2))
         if pos > self.position and self.direction == 'down':
             self.cycle_position('up')
             self.cycle_position('down')

@@ -1,7 +1,20 @@
 """wrapper for heliotis lock-in camera"""
 
-from utils import logger
 from atexit import ( register as _register, unregister as _unregister )
+
+import logging as _logging
+
+
+_formatter = _logging.Formatter('%(asctime)s -  %(name)s - %(message)s')
+logger = _logging.getLogger(__file__)
+# logger = _logging.getLogger('A')
+# logger.setLevel(logging.DEBUG)  # defaults to logging.WARNING
+_ch = _logging.StreamHandler()
+_ch.setLevel(_logging.DEBUG)
+_ch.setFormatter(_formatter)
+logger.addHandler(_ch)
+logger.setLevel(_logging.DEBUG)
+
 
 import ctypes as _ct
 import sys
@@ -124,7 +137,7 @@ class LockinCamera:
         self._set_property('TrigFreeExtN',0)
         retVal = 0
         while retVal != -116:
-            self._handle.AllocCamData(1,LibHeLIC.CamDataFmt['DF_I16Q16'],0,0,0);
+            self._handle.AllocCamData(1,LibHeLIC.CamDataFmt['DF_I16Q16'],0,0,0)
             retVal = self._handle.Acquire()
             # logger.debug(retVal)
         logger.info("flushed the buffer: %s", retVal)  
@@ -146,10 +159,11 @@ class LockinCamera:
     def close(self):
         logger.info('closing lockin')
         self._handle.Close()
+        _unregister(self.close)
 
-    def __del__(self):
-        try:
-            self.close()
-            _unregister(self.close)
-        except Exception as e:
-            print(e)
+    # def __del__(self):
+    #     try:
+    #         self.close()
+    #         _unregister(self.close)
+    #     except Exception as e:
+    #         print(e)

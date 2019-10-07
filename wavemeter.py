@@ -35,10 +35,11 @@ class WavemeterDFC:
 
     def close(self):
         self._conn.close()
-        
-    def __del__(self):
-        try:
-            self.close()
-        except Exception as e:
-            print(e)
         _unregister(self.close)
+        
+    # def __del__(self):
+    #     try:
+    #         self.close()
+    #     except Exception as e:
+    #         print(e)
+        # _unregister(self.close)

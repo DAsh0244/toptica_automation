@@ -3,9 +3,22 @@ from wavemeter import WavemeterDFC
 from PID import PID
 from time import sleep, time
 from multiprocessing import Event,Process
-from utils import time_execution, logger
+from utils import time_execution
 
+import logging as _logging
 from socket import timeout, create_connection
+
+
+_formatter = _logging.Formatter('%(asctime)s -  %(name)s - %(message)s')
+logger = _logging.getLogger(__file__)
+# logger = _logging.getLogger('A')
+# logger.setLevel(logging.DEBUG)  # defaults to logging.WARNING
+_ch = _logging.StreamHandler()
+_ch.setLevel(_logging.DEBUG)
+_ch.setFormatter(_formatter)
+logger.addHandler(_ch)
+logger.setLevel(_logging.DEBUG)
+
 
 PIEZO_MAX = 140.0
 PIEZO_MIN = 0.0
@@ -45,7 +58,7 @@ def wavelength_pid_loop(wavelength:float, pid:PID,stop_event:Event, stable_event
     output = 0
     i=1
     stable_cnts = 0
-    # print(pid.windup_guard, pid.ITerm, pid.ITerm * pid.Ki)
+    # logger.debug('windup_guard: %f  I-term: %f I-contrubition: %f' , pid.windup_guard, pid.ITerm, pid.ITerm * pid.Ki)
     with open(log_file,'w') as log:
         log.write('P={},I={},D={}\nTs={}\n'.format(pid.Kp,pid.Ki,pid.Kd,sample_time))
         log.write('Iteration,time(s),piezo_output,measured_wavelength(nm)\n')
@@ -54,14 +67,11 @@ def wavelength_pid_loop(wavelength:float, pid:PID,stop_event:Event, stable_event
             # last_output = pid.output
             pid.update(curr_wavelength)   
             output = pid.output
-            # adaptive time stepping
-            # print(i,'piezo',output)
-            print(pid.PTerm , (pid.Ki * pid.ITerm) ,(pid.Kd * pid.DTerm))
+            # logger.debug('iter: %d piezo (V): %f', i, output)
+            logger.debug('P: %f, I: %f, D: %f', pid.PTerm, (pid.Ki * pid.ITerm), (pid.Kd * pid.DTerm))
             shg.set_dl_piezo(max(min(piezo_max,output),piezo_min))
             sleep(sample_time)
             curr_wavelength = wavemeter.measure_wavelength()*1e9
-            # print(wavelength, curr_wavelength)
-            # print(abs(curr_wavelength - wavelength))
             i+=1
             log.write('{},{},{},{}\n'.format(i,i*sample_time,output,curr_wavelength))
             if abs(curr_wavelength - wavelength) < tol:
@@ -91,7 +101,7 @@ def frequency_pid_loop(frequency:float, pid:PID,stop_event:Event,stable_event:Ev
     output = 0
     i=1
     stable_cnts = 0
-    # print(pid.windup_guard, pid.ITerm, pid.ITerm * pid.Ki)
+    # logger.debug('windup_guard: %f  I-term: %f I-contrubition: %f',  pid.windup_guard, pid.ITerm, pid.ITerm * pid.Ki)
     with open(log_file,'w') as log:
         log.write('P={},I={},D={}\nTs={}\n'.format(pid.Kp,pid.Ki,pid.Kd,sample_time))
         log.write('Iteration,time(s),piezo_output,measured_wavelength(nm)\n')
@@ -100,14 +110,11 @@ def frequency_pid_loop(frequency:float, pid:PID,stop_event:Event,stable_event:Ev
             # last_output = piezo_pid.output
             pid.update(curr_frequency)   
             output = pid.output
-            # adaptive time stepping
-            # print(i,'piezo',output)
-            print(pid.PTerm , (pid.Ki * pid.ITerm) ,(pid.Kd * pid.DTerm))
+            # logger.debug('iter: %d piezo (V): %f', i, output)
+            logger.debug('P: %f, I: %f, D: %f' , pid.PTerm, (pid.Ki * pid.ITerm), (pid.Kd * pid.DTerm))
             shg.set_dl_piezo(max(min(piezo_max,output),piezo_min))
             sleep(sample_time)
             curr_frequency = wavemeter.measure_frequency()*1e-12
-            # print(frequency, curr_frequency)
-            # print(abs(curr_frequency - frequency))
             i+=1
             log.write('{},{},{},{}\n'.format(i,i*sample_time,output,curr_frequency))
             if abs(curr_frequency - frequency) < tol:
@@ -177,7 +184,7 @@ def tune_laser_frequency(frequency:float,shg:SHGpro,wavemeter:WavemeterDFC,stop_
     shg.motor.wait_for_movement()
     curr_frequency = wavemeter.measure_frequency()*1e-12
     err = frequency - curr_frequency 
-    print(err)
+    logger.debug('Error (THz): %f',err)
     # single pass grating correction:
     if abs(err) > 0.015:
         shg.motor.frequency_offset = err
@@ -198,26 +205,26 @@ if __name__ == "__main__":
 
     try:
         for freq in (target_freq, target_freq+0.125):
-            print(freq)
+            logger.debug(freq)
             loop_handle = tune_laser_frequency(freq,shg,wavemeter,stop_event,stable_event)
-            print('waiting to stabilize')
+            logger.debug('waiting to stabilize')
             while not stable_event.is_set():
                 sleep(0.05)
-            print('stabilized!')
-            print('measuring freq for next {} seconds'.format(acq_time))
+            logger.debug('stabilized!')
+            logger.debug('measuring freq for next {} seconds'.format(acq_time))
             stop_time = time() + acq_time
             while time() < stop_time:
-                print(wavemeter.measure_frequency()*1e-12)
+                logger.debug(wavemeter.measure_frequency()*1e-12)
                 sleep(1.0)
             stop_event.set()
-            print('joining proc')
+            logger.debug('joining proc')
             loop_handle.join()
             loop_handle.close()
-            # print(loop_handle.is_alive())
+            # logger.debug(loop_handle.is_alive())
             # del loop_handle
-            # print(wavemeter.measure_frequency())
-            # print(shg.get_dl_piezo())
-            # print(shg.motor._port.is_open)
+            # logger.debug(wavemeter.measure_frequency())
+            # logger.debug(shg.get_dl_piezo())
+            # logger.debug(shg.motor._port.is_open)
             stop_event.clear()
             stable_event.clear()
     except KeyboardInterrupt:
