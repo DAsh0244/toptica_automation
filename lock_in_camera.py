@@ -79,7 +79,8 @@ class LockinCamera:
         }
         if settings is not None:
             self.settings.update({k: settings[k] for k in self.good_keys})
-
+        logger.debug('SensTqp %s', self.settings['SensTqp'])
+        logger.debug('SensNavM2 %s', self.settings['SensNavM2'])
         self._update_settings()
 
 

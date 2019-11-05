@@ -17,14 +17,15 @@ _ch = _logging.StreamHandler()
 _ch.setLevel(_logging.DEBUG)
 _ch.setFormatter(_formatter)
 logger.addHandler(_ch)
-logger.setLevel(_logging.DEBUG)
+logger.setLevel(_logging.INFO)
 
 
 PIEZO_MAX = 140.0
 PIEZO_MIN = 0.0
 
 wave_piezo_pid = PID(P=-120,I=-2400,D=-4)
-freq_piezo_pid = PID(P=900,I=12000.0,D=30.0)
+# freq_piezo_pid = PID(P=900,I=12000.0,D=30.0)
+freq_piezo_pid = PID(P=900,I=10000.0,D=30.0)
 # wave_current_pid = PID(P=10,I=0,D=0)
 # freq_current_pid = PID(P=10,I=0,D=0)
 c = 299792458 # speed of light m/s
@@ -115,6 +116,7 @@ def frequency_pid_loop(frequency:float, pid:PID,stop_event:Event,stable_event:Ev
             shg.set_dl_piezo(max(min(piezo_max,output),piezo_min))
             sleep(sample_time)
             curr_frequency = wavemeter.measure_frequency()*1e-12
+            logger.debug(curr_frequency)
             i+=1
             log.write('{},{},{},{}\n'.format(i,i*sample_time,output,curr_frequency))
             if abs(curr_frequency - frequency) < tol:
@@ -126,8 +128,6 @@ def frequency_pid_loop(frequency:float, pid:PID,stop_event:Event,stable_event:Ev
             else:
                 stable_event.clear()
 
-
-# def tune_laser_wavelength(wavelength:float,sample_time:float=0.05,piezo_tol:float=0.0001,current_tol:float=0.00005,shg:SHGpro=shg,wavemeter:WavemeterDFC=wavemeter,piezo_pid:PID=wave_piezo_pid,dl_pid:PID=wave_current_pid):
 def tune_laser_wavelength(wavelength:float,shg:SHGpro,wavemeter:WavemeterDFC,stop_event:Event,stable_event:Event,sample_time:float=0.05,
                           log_file:str='pid_log.csv',tol:float=0.000001,stable_cnts:int=10,piezo_pid:PID=wave_piezo_pid):
     # start shg crystal temperature
@@ -156,7 +156,6 @@ def tune_laser_wavelength(wavelength:float,shg:SHGpro,wavemeter:WavemeterDFC,sto
     pid_loop.start()
     return pid_loop
 
-# def tune_laser_frequency(frequency:float,sample_time:float=0.05,piezo_tol:float=0.000001,current_tol:float=0.00005,shg:SHGpro=shg,wavemeter:WavemeterDFC=wavemeter,piezo_pid:PID=freq_piezo_pid,dl_pid:PID=freq_current_pid):
 def tune_laser_frequency(frequency:float,shg:SHGpro,wavemeter:WavemeterDFC,stop_event:Event,stable_event:Event,sample_time:float=0.05, 
                          log_file:str='pid_log.csv',tol:float=0.000001,stable_cnts:int=10,piezo_pid:PID=freq_piezo_pid):
     # start shg crystal temperature
@@ -191,7 +190,7 @@ def tune_laser_frequency(frequency:float,shg:SHGpro,wavemeter:WavemeterDFC,stop_
         shg.motor.set_frequency(frequency)
     # start temperature adjustment for SHG
     logger.debug('setting temp')
-    shg.set_shg_temp_for_frequency(frequency,block=True)
+    # shg.set_shg_temp_for_frequency(frequency,block=True)
     sleep(1.0)
     pid_loop.start()
     return pid_loop

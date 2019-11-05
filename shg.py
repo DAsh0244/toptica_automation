@@ -6,6 +6,9 @@ from toptica.lasersdk.dlcpro.v2_0_3 import DLCpro, NetworkConnection, DeviceNotF
 from atexit import ( register as _register, unregister as _unregister )
 import logging as _logging
 
+from typing import Tuple
+# from laser_tuner import 
+
 _formatter = _logging.Formatter('%(asctime)s -  %(name)s - %(message)s')
 logger = _logging.getLogger(__file__)
 # logger = _logging.getLogger('A')
@@ -28,12 +31,12 @@ class SHGpro:
         'quadratic':[2.63888888888885000E-02, -6.02361111111103000E+01, 3.44075222222217000E+04],
     }
 
-    def __init__(self, dlc_address,motor_address, *args, **kwargs):
+    def __init__(self, dlc_address,motor_address, home=True, *args, **kwargs):
         self._dlc_host = dlc_address
         self.dlc = DLCpro(NetworkConnection(dlc_address)).__enter__()
         self.set_power_stabilization(False)
         if motor_address is not None:
-            self.motor = DLMotor(motor_address,home=True)
+            self.motor = DLMotor(motor_address,home=home)
         else:
             self.motor = fakeMotor()
         self.sleep_time = 1.0
@@ -63,6 +66,9 @@ class SHGpro:
             while not status:
                 sleep(self.sleep_time )
                 status = self.dl_temp_settled()
+
+    def set_ta_current(self, current):
+        self.dlc.laser1.amp.cc.current_set.set(current)
 
     def get_dl_temp(self):
         return self.dlc.laser1.dl.tc.temp_set.get()
@@ -105,6 +111,17 @@ class SHGpro:
         wavelength = (299792458/(frequency*1e12))*1e9
         logger.debug('calculated wavelength %f', wavelength)
         self.set_shg_temp_for_wavelength(wavelength,block=block,master=master,mode=mode)
+
+    def set_wavelength(self,wavelength:float):
+        self.motor.set_wavelength(wavelength)
+        self.set_shg_temp_for_wavelength(wavelength)
+
+    def set_frequency(self, frequency:float):
+        self.motor.set_frequency(frequency)
+        self.set_shg_temp_for_frequency(frequency)
+
+    # def lock_wavelength(self, frequency:float):
+
 
     def optimize_amplifier_power(self):
         pass

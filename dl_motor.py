@@ -73,7 +73,7 @@ class DLMotor:
     
     
     # position,
-    HYSTERESIS_CURVE = 'default_hysteris_curve_10_2_2019.csv'
+    HYSTERESIS_CURVE = 'default_hysteris_curve_10_26_2019.csv'
     
     def __init__(self,port:str,timeout:float=1.0,offset_wavelength:float=0,offset_frequency:float=0,motor:int=2,home:bool=True,hysteresis_curve=None,enforce_limits:bool=True):
     # def __init__(self,port:str,timeout:float=1.0,motor:int=2,home:bool=True,hysteresis_curve=None,enforce_limits:bool=True,wavemeter_addr=None):
@@ -94,11 +94,10 @@ class DLMotor:
         self._pos_min = min(min(self._hysteresis_curve['up']),min(self._hysteresis_curve['down'])).position
         if home:
             self.home_motor()
-        
-        # self.cycle_position('down')
-        # self.cycle_position('up')
-        # self.cycle_position('down')
-        # self.cycle_position('up')
+            self.cycle_position('down')
+            self.cycle_position('up')
+            self.cycle_position('down')
+            self.cycle_position('up')
         _register(self.close)
 
     def close(self):
@@ -150,7 +149,7 @@ class DLMotor:
     def pos_min(self):
         return self._pos_min
 
-    def wait_for_movement(self,timeout=100):
+    def wait_for_movement(self,timeout=5):
         self.send_cmd('138',0,0b100)
         res = self.read_response()
         t = 0
